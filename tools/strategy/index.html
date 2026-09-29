@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แปลงข้อมูลยุทธศาสตร์ → Power BI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="h-icon">📊</div>
+  <div>
+    <h1>แปลงข้อมูลยุทธศาสตร์ → Power BI</h1>
+    <p>รองรับทุกปี · เพิ่มหน่วยงานใหม่ได้เอง · บันทึก Mapping อัตโนมัติ</p>
+  </div>
+  <div class="badge">มทร.อีสาน</div>
+</header>
+
+<main>
+
+<!-- ===== Step 1: Settings ===== -->
+<div class="card">
+  <div class="card-header">
+    <div class="step">1</div>
+    <h2>ตั้งค่าปีงบประมาณ และ Mapping หน่วยงาน</h2>
+    <span id="saved-badge" class="saved-badge" style="display:none;">💾 บันทึกแล้ว</span>
+  </div>
+  <div class="card-body">
+
+    <!-- Year -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">ปีงบประมาณ <span style="color:var(--text-m); font-weight:400;">(ใช้ตั้งชื่อไฟล์ output)</span></div>
+      <div class="year-input">
+        <input type="number" id="year-input" value="2568" min="2560" max="2580" oninput="saveSettings()">
+        <span style="font-size:13px; color:var(--text-m);">→ ไฟล์ output จะชื่อ: <strong id="output-filename">data_source_2568.xlsx</strong></span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('mapping')">🗂 Mapping หน่วยงาน</div>
+      <div class="tab" onclick="switchTab('about')">ℹ️ วิธีใช้</div>
+    </div>
+
+    <!-- Tab: Mapping -->
+    <div id="tab-mapping">
+      <div class="alert alert-info">
+        ℹ️ <span>ตารางนี้บอกว่า Sheet ชื่ออะไร → แมปกับวิทยาเขต/ประเภท/หน่วยงานอะไร<br>
+        <strong>เพิ่ม Sheet ใหม่</strong>ได้เลย หรือแก้ชื่อที่มีอยู่ — ระบบบันทึกให้อัตโนมัติในเบราว์เซอร์นี้</span>
+      </div>
+      <div style="margin:12px 0 8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:12px; color:var(--text-m);" id="map-count">— รายการ</span>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="addRow()">➕ เพิ่ม Sheet ใหม่</button>
+          <button class="btn btn-warning btn-sm" onclick="resetMapping()">↺ Reset เป็นค่าเริ่มต้น</button>
+        </div>
+      </div>
+      <div class="map-table-wrap">
+        <table class="map-table" id="map-table">
+          <thead>
+            <tr>
+              <th style="width:110px;">ชื่อ Sheet</th>
+              <th style="width:130px;">วิทยาเขต</th>
+              <th style="width:110px;">ประเภท</th>
+              <th>หน่วยงาน (ชื่อเต็ม)</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="map-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: About -->
+    <div id="tab-about" class="section-hidden">
+      <div class="alert alert-info" style="margin-top:0;">
+        📌 <strong>วิธีใช้งาน</strong><br><br>
+        <strong>ทุกปีงบประมาณ:</strong> แค่เปลี่ยนปี แล้ว Upload ไฟล์ใหม่ — ระบบจะแปลงให้อัตโนมัติ<br><br>
+        <strong>มีตัวชี้วัดใหม่:</strong> ไม่ต้องทำอะไร — ระบบดึงทุก row ที่เป็น pattern เลข (เช่น 1.1, 15.2, 3.1.1) อัตโนมัติ<br><br>
+        <strong>มีหน่วยงาน/Sheet ใหม่:</strong> คลิก "เพิ่ม Sheet ใหม่" ใส่ชื่อ Sheet และข้อมูล แล้วกด Save — ระบบจะจดจำ<br><br>
+        <strong>Sheet ที่ระบบข้าม:</strong> "รวม" และ "กราฟแยกคณะ" — ถ้ามี Sheet อื่นที่ต้องการข้าม ไม่ต้องใส่ใน Mapping<br><br>
+        <strong>ข้อมูลที่บันทึก:</strong> Mapping และปีจะเก็บในเบราว์เซอร์นี้ (localStorage) ไม่หายเมื่อปิดแล้วเปิดใหม่
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Step 2: Upload ===== -->
+<div class="card">
+  <div class="card-header">
+    <div class="step">2</div>
+    <h2>อัปโหลดไฟล์ข้อมูลดิบ</h2>
+  </div>
+  <div class="card-body">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".xlsx,.xls">
+      <div style="font-size:36px;">📂</div>
+      <h3>คลิกเพื่อเลือก หรือลากไฟล์มาวาง</h3>
+      <p>รองรับ .xlsx ที่มี Sheet แยกตามหน่วยงาน</p>
+    </div>
+    <div id="file-info" class="section-hidden">
+      <div class="info-row">
+        <div class="ibox"><div class="lbl">ชื่อไฟล์</div><div class="val" id="fname" style="font-size:12px;word-break:break-all;"></div></div>
+        <div class="ibox"><div class="lbl">Sheets ทั้งหมด</div><div class="val" id="sheet-count">—</div></div>
+        <div class="ibox"><div class="lbl">จะแปลง</div><div class="val" id="process-count">—</div></div>
+        <div class="ibox"><div class="lbl">ไม่มีใน Mapping</div><div class="val" id="unmapped-count" style="color:var(--orange);">—</div></div>
+      </div>
+      <div class="sheet-tags" id="sheet-tags"></div>
+      <div id="unmapped-alert" class="section-hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Step 3: Convert ===== -->
+<div class="card section-hidden" id="convert-section">
+  <div class="card-header">
+    <div class="step">3</div>
+    <h2>แปลงข้อมูล</h2>
+  </div>
+  <div class="card-body">
+    <div id="log-box" class="log-box">รอการแปลงข้อมูล...</div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="status-msg" id="status-msg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="convert-btn" onclick="convertData()">⚡ เริ่มแปลงข้อมูล</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Step 4: Result ===== -->
+<div class="card section-hidden" id="result-section">
+  <div class="card-header">
+    <div class="step">4</div>
+    <h2>ผลลัพธ์และ Download</h2>
+  </div>
+  <div class="card-body">
+    <div class="summary-grid">
+      <div class="sum-box sb-blue"><div class="num" id="r-data">—</div><div class="lbl">Rows (Sheet data)</div></div>
+      <div class="sum-box sb-blue"><div class="num" id="r-all">—</div><div class="lbl">Rows (Sheet all)</div></div>
+      <div class="sum-box sb-green"><div class="num" id="r-ok">—</div><div class="lbl">บรรลุเป้าหมาย</div></div>
+      <div class="sum-box sb-red"><div class="num" id="r-no">—</div><div class="lbl">ไม่บรรลุเป้าหมาย</div></div>
+      <div class="sum-box sb-gray"><div class="num" id="r-na">—</div><div class="lbl">N/A (ว่าง)</div></div>
+    </div>
+    <div class="preview-wrap" id="preview-table"></div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="downloadFile()">⬇️ Download <span id="dl-name">data_source_2568.xlsx</span></button>
+    </div>
+    <div class="alert alert-success">
+      ✅ ไฟล์มี 2 Sheet: <strong>data<span id="al-year">2568</span></strong> และ <strong>all</strong> — โครงสร้างตรงกับ data_source_2568.xlsx พร้อม Import ใน Power BI
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

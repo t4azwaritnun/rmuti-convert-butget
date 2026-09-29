@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget ETL — มทร.อีสาน</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1><i class="ti ti-transform"></i> Budget ETL — มทร.อีสาน</h1>
+    <p>อัปโหลดไฟล์แผน-ผลการเบิกจ่าย → แปลงอัตโนมัติ → Export Data Source + REF sheets พร้อมใช้ใน Power BI</p>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="s1"><i class="ti ti-upload"></i> อัปโหลดไฟล์</div>
+    <div class="step" id="s2"><i class="ti ti-cpu"></i> ประมวลผล ETL</div>
+    <div class="step" id="s3"><i class="ti ti-download"></i> Export</div>
+  </div>
+
+  <div id="step1">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-file-spreadsheet"></i> อัปโหลดไฟล์งบประมาณดิบ</div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()">
+        <i class="ti ti-cloud-upload"></i>
+        <p>คลิกหรือลากไฟล์มาวาง</p>
+        <small>รองรับ .xlsx — ไฟล์แผน-ผลการเบิกจ่ายงบประมาณ มทร.อีสาน</small>
+      </div>
+      <input type="file" id="fi" accept=".xlsx,.xls" class="hidden">
+      <div id="filePill" class="file-pill hidden">
+        <i class="ti ti-circle-check"></i><span id="fileLabel"></span>
+      </div>
+    </div>
+    <div class="card hidden" id="sheetCheck">
+      <div class="card-title"><i class="ti ti-list-check"></i> ตรวจสอบ Sheets ที่พบ</div>
+      <div class="sheet-tags" id="sheetList"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="startETL()">
+          <i class="ti ti-player-play"></i> เริ่ม ETL อัตโนมัติ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="step2" class="hidden">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-cpu"></i> ประมวลผล ETL</div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="progLabel">กำลังอ่านไฟล์...</span>
+          <span id="progPct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+      </div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+
+  <div id="step3" class="hidden">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-bar"></i> ผลลัพธ์ ETL</div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="table-wrap"><table id="previewTbl"></table></div>
+      <p class="preview-note" id="previewNote"></p>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-download"></i> Export Data Source</div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:6px">
+          <i class="ti ti-pencil" style="font-size:13px;vertical-align:-2px"></i> ตั้งชื่อไฟล์
+        </label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="exportFilename" type="text" placeholder="Data_source_bi_2569"
+            style="flex:1;padding:8px 12px;font-size:13px;border:1px solid #ccc;border-radius:8px;font-family:inherit;color:#1a1a1a;background:#fff;outline:none"
+            onfocus="this.style.borderColor='#1565c0'"
+            onblur="this.style.borderColor='#ccc'">
+          <span style="font-size:12px;color:#aaa;white-space:nowrap" id="filenameSuffix"></span>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-top:5px" id="filenamePreview"></div>
+      </div>
+      <div class="export-grid">
+        <div class="export-card" onclick="doExport('xlsx')">
+          <i class="ti ti-file-spreadsheet" style="color:#22a06b"></i>
+          <div>
+            <div class="ec-title">Excel (.xlsx)</div>
+            <div class="ec-desc">Power BI Desktop</div>
+            <div class="ec-note">รวม Data_soure + REF 6 sheets</div>
+          </div>
+        </div>
+        <div class="export-card" onclick="doExport('csv')">
+          <i class="ti ti-file-zip" style="color:#1565c0"></i>
+          <div>
+            <div class="ec-title">CSV (แยกไฟล์)</div>
+            <div class="ec-desc">Universal / Power BI Service</div>
+            <div class="ec-note">Data_soure.csv + REF_*.csv รวม ZIP</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:1rem">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:.5rem">
+          <i class="ti ti-table" style="font-size:13px;vertical-align:-2px"></i> Sheets ที่จะ Export (7 sheets)
+        </div>
+        <div class="ref-grid">
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-database" style="font-size:12px"></i> Data_soure</div><div class="ref-card-body" id="refDataCount">— records</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-calendar" style="font-size:12px"></i> REF_Quarter</div><div class="ref-card-body">Q1–Q4 + ชื่อไทย</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-calendar-month" style="font-size:12px"></i> REF_Month</div><div class="ref-card-body">12 เดือน TH/EN</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-coins" style="font-size:12px"></i> REF_budget</div><div class="ref-card-body">budget_id → ชื่องบ</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-layout-grid" style="font-size:12px"></i> REF_group</div><div class="ref-card-body">budget_group_id → กลุ่มงบ</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-building" style="font-size:12px"></i> REF_campus</div><div class="ref-card-body">campus_id → วิทยาเขต</div></div>
+          <div class="ref-card"><div class="ref-card-title"><i class="ti ti-tag" style="font-size:12px"></i> REF_budget_type</div><div class="ref-card-body">budget_type_id → ประเภทงบ</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="resetAll()"><i class="ti ti-refresh"></i> เริ่มใหม่</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

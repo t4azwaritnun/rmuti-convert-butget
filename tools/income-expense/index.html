@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ETL รายรับ-รายจ่าย มทร.อีสาน</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>รายรับ–รายจ่าย มทร.อีสาน</h1>
+  <p class="lead">โยนไฟล์ดิบ 2 ไฟล์ (รวมรายรับ และ รวมรายจ่ายจำแนกตามประเภท) ระบบจะแกะโครงสร้างตารางและแปลงเป็นฟอร์แมต long-format พร้อมนำเข้า Power BI ให้อัตโนมัติ เหมือนไฟล์ 3_pay_income_Source ที่คุณเคยทำเอง</p>
+
+  <div class="card">
+    <h2><span class="step-num">1</span>ไฟล์รวมรายรับ (income)</h2>
+    <label class="drop" id="dropIncome">
+      <input type="file" id="fileIncome" accept=".xlsx,.xls">
+      คลิกเพื่อเลือกไฟล์ "รวมรายรับมทร.อีสาน.xlsx"
+    </label>
+    <div class="filename" id="nameIncome">ยังไม่ได้เลือกไฟล์</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">2</span>ไฟล์รวมรายจ่าย (pay, จำแนกตามประเภท)</h2>
+    <label class="drop" id="dropPay">
+      <input type="file" id="filePay" accept=".xlsx,.xls">
+      คลิกเพื่อเลือกไฟล์ "รวมรายจ่ายมทร.อีสาน...จำแนกตามประเภท.xlsx"
+    </label>
+    <div class="filename" id="namePay">ยังไม่ได้เลือกไฟล์</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">3</span>แปลงข้อมูล</h2>
+    <button class="primary" id="btnConvert" disabled>แปลงข้อมูลทั้ง 2 ไฟล์</button>
+    <div id="logWrap" class="hidden" style="margin-top:14px">
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <h2>✅ ผลลัพธ์</h2>
+    <div class="summary" id="summary"></div>
+    <div class="tblwrap"><table id="previewTable"></table></div>
+    <div style="margin-top:14px">
+      <button class="secondary" id="btnDownload">ดาวน์โหลดไฟล์ .xlsx</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
